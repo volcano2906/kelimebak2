@@ -21,6 +21,7 @@ def analyze_words(keywords, combined_text):
         }
         for phrase in keywords_with_words
     }
+    # Convert the results dictionary into a DataFrame for display
     results_df = pd.DataFrame([
         {"Phrase": phrase,
          "Split Words": data["Split Words"],
@@ -95,12 +96,12 @@ def calculate_final_score(row):
         final_score = 0
     return final_score
 
-# --- New competitor transformation function ---
+# --- New: Function to update competitor columns ---
 def update_competitor(value):
     try:
         value = float(value)
     except:
-        return None
+        return 0
     if 1 <= value <= 10:
         return 5
     elif 11 <= value <= 20:
@@ -119,7 +120,6 @@ def update_competitor(value):
 ##############################
 
 def calculate_effective_points(keyword_list):
-    """Calculate effective points per keyword and new keyword combinations based on total point."""
     def keyword_score(keyword, base_points):
         words = keyword.split()
         if len(words) == 1:
@@ -170,10 +170,6 @@ def construct_best_phrase(field_limit, keywords, multiplier, used_words, used_ke
     return field, total_points, used_keywords, field_limit - remaining_chars
 
 def fill_field_with_word_breaking(field_limit, keywords, used_words, used_keywords, stop_words):
-    """
-    Fill Field 3 with word breaking, ensuring that adding a word (plus a comma if needed)
-    does not exceed the field_limit (100 characters).
-    """
     field = []
     total_points = 0
     remaining_chars = field_limit
@@ -195,7 +191,6 @@ def fill_field_with_word_breaking(field_limit, keywords, used_words, used_keywor
     return field, total_points, used_keywords, field_limit - remaining_chars
 
 def optimize_keyword_placement(keyword_list):
-    """Optimize keyword placement across three fields for maximum points."""
     stop_words = {"the", "and", "for", "to", "of", "an", "a", "in", "on", "with", "by", "as", "at", "is", "app", "free"}
     expanded_keywords = expand_keywords(keyword_list, max_length=29)
     sorted_keywords = calculate_effective_points(expanded_keywords)
@@ -246,6 +241,18 @@ if table_input:
         st.error(f"The pasted table must contain the following columns: {', '.join(required_columns)}")
         st.stop()
     else:
+        # Process competitor columns if they exist.
+        competitor_columns = ["competitor1", "competitor2", "competitor3", "competitor4"]
+        if all(col in df_table.columns for col in competitor_columns):
+            df_table["Competitor1 Score"] = df_table["competitor1"].apply(update_competitor)
+            df_table["Competitor2 Score"] = df_table["competitor2"].apply(update_competitor)
+            df_table["Competitor3 Score"] = df_table["competitor3"].apply(update_competitor)
+            df_table["Competitor4 Score"] = df_table["competitor4"].apply(update_competitor)
+            df_table["All Competitor"] = (df_table["Competitor1 Score"] + 
+                                          df_table["Competitor2 Score"] + 
+                                          df_table["Competitor3 Score"] + 
+                                          df_table["Competitor4 Score"]) / 4
+
         df_table["Normalized Difficulty"] = df_table["Difficulty"].apply(update_difficulty)
         df_table["Normalized Rank"] = df_table["Rank"].apply(update_rank)
         df_table["Calculated Result"] = df_table["Results"].apply(update_result)
@@ -253,18 +260,11 @@ if table_input:
         df_table = df_table.drop(columns=["Chance", "KEI"])
         df_table = df_table.sort_values(by="Final Score", ascending=False)
         
-        # Process Competitor columns if present.
-        competitor_columns = ["Competitor1", "Competitor2", "Competitor3", "Competitor4", "Competitor5"]
-        for col in competitor_columns:
-            if col in df_table.columns:
-                df_table[col] = df_table[col].apply(update_competitor)
-        # If all competitor columns exist, create a new column "All Competitor" as the average.
-        if all(col in df_table.columns for col in competitor_columns):
-            df_table["All Competitor"] = df_table[competitor_columns].sum(axis=1) / 5
-        
         # Build the keyword list for optimization from the Excel data:
         opt_keyword_list = list(zip(df_table["Keyword"].tolist(), df_table["Final Score"].tolist()))
         optimized_fields = optimize_keyword_placement(opt_keyword_list)
+        
+        # Extract all keywords (for word analysis) from the table
         excel_keywords = df_table["Keyword"].dropna().tolist()
         
         st.subheader("Enter Word Lists")
