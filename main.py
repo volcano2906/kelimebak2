@@ -263,6 +263,7 @@ if table_input:
         opt_keyword_list = list(zip(df_table["Keyword"].tolist(), df_table["Final Score"].tolist()))
         optimized_fields = optimize_keyword_placement(opt_keyword_list)
         excel_keywords = df_table["Keyword"].dropna().tolist()
+        st.dataframe(df_table, use_container_width=True)
         
         st.subheader("Enter Word Lists")
         
