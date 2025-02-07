@@ -259,6 +259,7 @@ if table_input:
         df_table["Final Score"] = df_table.apply(calculate_final_score, axis=1)
         df_table = df_table.drop(columns=["Chance", "KEI"])
         df_table = df_table.sort_values(by="Final Score", ascending=False)
+        st.dataframe(df_table, use_container_width=True)
         
         # Build the keyword list for optimization from the Excel data:
         opt_keyword_list = list(zip(df_table["Keyword"].tolist(), df_table["Final Score"].tolist()))
