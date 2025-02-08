@@ -135,7 +135,7 @@ def calculate_effective_points(keyword_list):
             return base_points  # Exact match (single word)
         return sum(base_points / (i + 1) for i in range(len(words) - 1))
     
-    return [(kw, points, keyword_score(kw, points), keyword_score(kw, points), keyword_score(kw, points) * (1/2))
+    return [(kw, points, keyword_score(kw, points), keyword_score(kw, points), keyword_score(kw, points)))
             for kw, points in keyword_list]
 
 def sort_keywords_by_total_points(keyword_list):
@@ -212,31 +212,64 @@ def construct_best_phrase(field_limit, keywords, multiplier, used_words, used_ke
 
 def fill_field_with_word_breaking(field_limit, keywords, used_words, used_keywords, stop_words):
     """
-    Fill Field 3 with word breaking, ensuring that adding a word (plus a comma if needed)
-    does not exceed the field_limit (100 characters).
+    Fill Field 3 with word breaking while ensuring:
+    - Exact match in Field 1 or Field 2 → Full points
+    - Partial match between Field 1/2 & Field 3 → 0.7x points
+    - Distance decay: If words from Field 1/2 appear with gaps in Field 3, divide by distance
     """
+
     field = []
     total_points = 0
     remaining_chars = field_limit
-    
+
     for kw, base_points, f1_points, f2_points, f3_points in keywords:
         if kw in used_keywords:
             continue  # Skip already used full keywords
+
         words = kw.split()
-        for word in words:
-            normalized_word = normalize_word(word)
-            if normalized_word not in used_words and normalized_word not in stop_words:
-                # Determine separator length: 1 character for a comma if field is not empty.
-                sep_length = 1 if field else 0
-                if remaining_chars - (len(word) + sep_length) >= 0:
-                    field.append(word)
-                    total_points += f3_points  # Full points if the word is used
-                    used_words.add(normalized_word)
-                    remaining_chars -= (len(word) + sep_length)
-                else:
-                    # Stop adding words if the next one doesn't fit.
-                    break
+        kw_set = set(words)
+        
+        # Case 1: Exact Match → Full Points
+        if kw_set.issubset(used_words):
+            points = base_points
+            field.append(kw)
+            total_points += points
+            used_keywords.add(kw)
+            remaining_chars -= len(kw) + 1  # +1 for comma separator
+        
+        # Case 2: Partial Match in Field 1 or 2 → 0.7x Points
+        elif any(word in used_words for word in words):
+            points = base_points * 0.7
+            field.append(kw)
+            total_points += points
+            used_keywords.add(kw)
+            remaining_chars -= len(kw) + 1
+        
+        # Case 3: Distance Decay Logic
+        else:
+            # Find positions of words in Field 3
+            field3_position = [i for i, word in enumerate(field) if word in words]
+
+            if len(field3_position) > 1:
+                max_distance = max(
+                    field3_position[i + 1] - field3_position[i] for i in range(len(field3_position) - 1)
+                )
+                decay_factor = 1 / (max_distance + 1)  # Decay based on distance
+                points = base_points * decay_factor
+            else:
+                points = base_points * 0.5  # Default decay if words are scattered
+
+            field.append(kw)
+            total_points += points
+            used_keywords.add(kw)
+            remaining_chars -= len(kw) + 1
+
+        # Ensure field limit constraint (100 characters)
+        if remaining_chars < 0:
+            break
+
     return field, total_points, used_keywords, field_limit - remaining_chars
+
 
 def optimize_keyword_placement(keyword_list):
     """Optimize keyword placement across three fields for maximum points."""
