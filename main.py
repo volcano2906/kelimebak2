@@ -87,6 +87,25 @@ def update_result(res):
     else:
         return 1
 
+def normalize_competitor(value):
+    try:
+        value = float(value)  # Convert to float to handle string inputs
+    except ValueError:
+        return 0  # Return 0 if conversion fails (e.g., if value is non-numeric)
+
+    if 1 <= value <= 10:
+        return 5
+    elif 11 <= value <= 20:
+        return 4.5
+    elif 21 <= value <= 30:
+        return 4.2
+    elif 31 <= value <= 60:
+        return 4
+    elif 61 <= value <= 100:
+        return 3
+    else:
+        return 0
+
 # Function to calculate the Final Score based on the formula:
 # (Volume / Normalized Difficulty) * Normalized Rank * Calculated Result
 def calculate_final_score(row):
@@ -97,8 +116,9 @@ def calculate_final_score(row):
     nd = row["Normalized Difficulty"]
     nr = row["Normalized Rank"]
     cr = row["Calculated Result"]
+    ac = row["All Competitor Score"]
     try:
-        final_score = (volume / nd) * nr * cr
+        final_score = (volume / nd) * nr * cr*ac
     except Exception:
         final_score = 0
     return final_score
@@ -275,6 +295,12 @@ if table_input:
         df_table["Normalized Difficulty"] = df_table["Difficulty"].apply(update_difficulty)
         df_table["Normalized Rank"] = df_table["Rank"].apply(update_rank)
         df_table["Calculated Result"] = df_table["Results"].apply(update_result)
+        # Apply normalization to competitor columns and store in new columns
+        for col in ["Competitor1", "Competitor2", "Competitor3", "Competitor4", "Competitor5"]:
+            df_table[f"Normalized {col}"] = df_table[col].apply(normalize_competitor)
+        # Create "All Competitor Score" as the sum of all normalized competitors divided by 5
+        df["All Competitor Score"] = df[["Normalized Competitor1", "Normalized Competitor2", "Normalized Competitor3", 
+                                 "Normalized Competitor4", "Normalized Competitor5"]].sum(axis=1) / 5
         df_table["Final Score"] = df_table.apply(calculate_final_score, axis=1)
         df_table = df_table.drop(columns=["Chance", "KEI"])
         df_table = df_table.sort_values(by="Final Score", ascending=False)
