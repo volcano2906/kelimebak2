@@ -73,9 +73,9 @@ def update_result(res):
 # Function to normalize competitor values
 def normalize_competitor(value):
     try:
-        value = float(value)  # Convert to float to handle string inputs
+        value = float(value)  
     except:
-        return 0  # Return 0 if conversion fails (e.g., if value is non-numeric)
+        return 0  
 
     if 1 <= value <= 10:
         return 5
@@ -90,7 +90,7 @@ def normalize_competitor(value):
     else:
         return 0
 
-# Function to calculate final points based on the given formula
+# Function to calculate final points
 def calculate_points(row):
     try:
         volume = float(row["Volume"])
@@ -99,7 +99,7 @@ def calculate_points(row):
         normalized_rank = float(row["Normalized Rank"])
         calculated_result = float(row["Calculated Result"])
 
-        if normalized_difficulty == 0:  # Avoid division by zero
+        if normalized_difficulty == 0:  
             return 0
 
         points = (volume * normalized_competitor / normalized_difficulty) * normalized_rank * calculated_result
@@ -108,9 +108,23 @@ def calculate_points(row):
 
     return points
 
+##############################
+# Part 2: Optimization Functions
+##############################
+
+def calculate_effective_points(keyword_list):
+    """Calculate effective points per keyword and new keyword combinations based on total point."""
+    def keyword_score(keyword, base_points):
+        words = keyword.split()
+        if len(words) == 1:
+            return base_points  
+        return sum(base_points / (i + 1) for i in range(len(words) - 1))
+    
+    return [(kw, points, keyword_score(kw, points), keyword_score(kw, points), keyword_score(kw, points) * (1/3))
+            for kw, points in keyword_list]
 
 ##############################
-# Part 2: Streamlit Interface
+# Part 3: Streamlit Interface
 ##############################
 
 # Text area for pasting table data
@@ -133,26 +147,38 @@ if table_input:
         st.error(f"Missing columns in the data. Required: {', '.join(required_columns)}")
         st.stop()
 
-    # Apply normalization to competitor columns and store in new columns
+    # Apply normalization to competitor columns
     for col in ["Competitor1", "Competitor2", "Competitor3", "Competitor4", "Competitor5"]:
         df[f"Normalized {col}"] = df[col].apply(normalize_competitor)
 
-    # Create "All Competitor Score" as the sum of all normalized competitors divided by 5
+    # Create "All Competitor Score"
     df["All Competitor Score"] = df[
         ["Normalized Competitor1", "Normalized Competitor2", "Normalized Competitor3",
          "Normalized Competitor4", "Normalized Competitor5"]
     ].sum(axis=1) / 5
 
-    # Ensure All Competitor Score is at least 1 (avoid zero values)
+    # Ensure All Competitor Score is at least 1
     df["All Competitor Score"] = df["All Competitor Score"].apply(lambda x: 1 if x == 0 else x)
 
-    # Apply normalization functions to the DataFrame
+    # Apply normalization functions
     df["Normalized Difficulty"] = df["Difficulty"].apply(update_difficulty)
     df["Normalized Rank"] = df["Rank"].apply(update_rank)
     df["Calculated Result"] = df["Results"].apply(update_result)
 
-    # Apply the final points calculation
+    # Calculate "Final Points"
     df["Final Points"] = df.apply(calculate_points, axis=1)
+
+    # Apply effective points calculation
+    keyword_list = list(zip(df["Keyword"].tolist(), df["Final Points"].tolist()))
+    effective_points_list = calculate_effective_points(keyword_list)
+
+    # Convert effective points into a DataFrame
+    effective_points_df = pd.DataFrame(effective_points_list, columns=[
+        "Keyword", "Final Points", "Effective Points 1", "Effective Points 2", "Effective Points 3"
+    ])
+
+    # Merge with the main DataFrame
+    df = df.merge(effective_points_df, on="Keyword", how="left")
 
     # Display the updated DataFrame
     st.write("### Processed Data with Normalization and Final Score Calculation")
