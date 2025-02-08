@@ -210,86 +210,73 @@ def construct_best_phrase(field_limit, keywords, multiplier, used_words, used_ke
     
     return field, total_points, used_keywords, field_limit - remaining_chars
 
-def fill_field_with_word_breaking(field_limit, keywords, used_words, used_keywords, stop_words):
+def fill_field_with_word_breaking(field_limit, keywords, used_words, used_keywords, stop_words, field1, field2):
     """
-    Fill Field 3 with word breaking while ensuring:
-    - Exact match in Field 1 or Field 2 → Full points
-    - Partial match between Field 1/2 & Field 3 → 0.7x points
-    - Distance decay: If words from Field 1/2 appear with gaps in Field 3, divide by distance
-    - Field 3 words are comma-separated (no spaces)
-    - Does not exceed 100 characters
-    - Stop words are excluded
+    Fill Field 3 with word breaking, ensuring that:
+    - If an exact keyword appears fully in Field 1 or Field 2, full points are given.
+    - If a keyword is split between Field 1/2 and Field 3, it gets 0.7x points.
+    - If words are separated, the points decay based on distance (1 word = /2, 2 words = /3, etc.).
+    - Ensures the field does not exceed 100 characters.
     """
-
     field = []
     total_points = 0
     remaining_chars = field_limit
+    field1_words = set(field1.split())
+    field2_words = set(field2.split())
 
     for kw, base_points, f1_points, f2_points, f3_points in keywords:
         if kw in used_keywords:
             continue  # Skip already used full keywords
 
-        words = kw.split()
-        kw_set = set(words)
-
-        # Exclude stop words from keyword processing
-        words = [word for word in words if word.lower() not in stop_words]
-
-        if not words:  # If all words were stop words, skip
+        kw_words = kw.split()
+        kw_set = set(kw_words)
+        
+        # Exact match in Field 1 or Field 2 → Full points
+        if kw_set.issubset(field1_words) or kw_set.issubset(field2_words):
+            field.append(kw)
+            total_points += f3_points  # Full points
+            used_keywords.add(kw)
+            remaining_chars -= len(kw) + 1
             continue
 
-        # Ensure Field 3 uses commas (no spaces)
-        kw_string = ",".join(words)
-
-        # Case 1: Exact Match → Full Points
-        if kw_set.issubset(used_words):
-            points = base_points
-            field.append(kw_string)
-            total_points += points
+        # Partial match between Field 1/2 & Field 3 → 0.7x points
+        if any(word in field1_words or word in field2_words for word in kw_words):
+            field.append(kw)
+            total_points += f3_points * 0.7
             used_keywords.add(kw)
-            used_words.update(words)
-            remaining_chars -= len(kw_string) + 1  # +1 for comma separator
+            remaining_chars -= len(kw) + 1
+            continue
 
-        # Case 2: Partial Match in Field 1 or 2 → 0.7x Points
-        elif any(word in used_words for word in words):
-            points = base_points * 0.7
-            field.append(kw_string)
-            total_points += points
-            used_keywords.add(kw)
-            used_words.update(words)
-            remaining_chars -= len(kw_string) + 1
+        # Check word-by-word placement for distance decay
+        words = kw.split()
+        field3_words = field.copy()
 
-        # Case 3: Distance Decay Logic
-        else:
-            # Find positions of words in Field 3
-            field3_position = [i for i, word in enumerate(field) if word in words]
+        # Determine separator length: 1 character for a comma if field is not empty.
+        for word in words:
+            normalized_word = normalize_word(word)
+            if normalized_word not in used_words and normalized_word not in stop_words:
+                sep_length = 1 if field else 0
+                if remaining_chars - (len(word) + sep_length) >= 0:
+                    field.append(word)
+                    
+                    # Find distance decay factor
+                    field3_position = [field3_words.index(w) for w in words if w in field3_words]
+                    if len(field3_position) > 1:
+                        max_distance = max(
+                            field3_position[i + 1] - field3_position[i] for i in range(len(field3_position) - 1)
+                        )
+                        decay_factor = 1 / (max_distance + 1)  # Decay based on distance
+                    else:
+                        decay_factor = 0.5  # Default decay if scattered
 
-            if len(field3_position) > 1:
-                max_distance = max(
-                    field3_position[i + 1] - field3_position[i] for i in range(len(field3_position) - 1)
-                )
-                decay_factor = 1 / (max_distance + 1)  # Decay based on distance
-                points = base_points * decay_factor
-            else:
-                points = base_points * 0.5  # Default decay if words are scattered
+                    total_points += f3_points * decay_factor
+                    used_words.add(normalized_word)
+                    remaining_chars -= (len(word) + sep_length)
+                else:
+                    break  # Stop adding words if they don't fit
 
-            field.append(kw_string)
-            total_points += points
-            used_keywords.add(kw)
-            used_words.update(words)
-            remaining_chars -= len(kw_string) + 1
+    return field, total_points, used_keywords, field_limit - remaining_chars
 
-        # Ensure field limit constraint (100 characters)
-        current_length = sum(len(item) + 1 for item in field) - 1  # Count comma separators
-        if current_length > field_limit:
-            break
-
-    # Ensure final Field 3 string does not exceed 100 characters
-    field3_str = ",".join(field)
-    if len(field3_str) > 100:
-        field3_str = field3_str[:100]
-
-    return field3_str, total_points, used_keywords, field_limit - len(field3_str)
 
 
 
