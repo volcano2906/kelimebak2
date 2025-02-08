@@ -286,7 +286,7 @@ if table_input:
         excel_keywords = df_table["Keyword"].dropna().tolist()
         
         st.subheader("Enter Word Lists")
-        
+        st.dataframe(df_table, use_container_width=True)
         first_field = st.text_input("Enter first text (max 30 characters)", max_chars=30)
         st.write("**Optimized Field 1:**", optimized_fields.get("Field 1")[0])
         
