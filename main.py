@@ -212,53 +212,46 @@ def construct_best_phrase(field_limit, keywords, multiplier, used_words, used_ke
 
 def fill_field_with_word_breaking(field_limit, keywords, used_words, used_keywords, stop_words, field1, field2):
     """
-    Fill Field 3 while ensuring:
-    - Exact match in Field 1 or Field 2 → Full Points.
-    - Exact match in Field 3 → Full Points.
-    - Partial match between Field 1/2 & Field 3 → 0.7x Points.
-    - If words are separated, apply distance-based decay (1-word gap = /2, 2-word gap = /3, etc.).
-    - Ensures the field does not exceed 100 characters.
+    Optimize Field 3 for maximum points.
+    - Field1 & Field2 belirlendikten sonra çağrılacak.
+    - Aynı kelime tekrar kullanılmayacak (ne title'da, ne subtitle'da, ne Field 3 içinde).
+    - Field 3'e maksimum puan sağlayan kelimeler öncelikli olarak eklenecek.
+    - Eğer bir kelime Field 1 veya Field 2 içinde geçiyorsa, Field 3'te aynısı olmayacak.
+    - Eğer bir kelime Field 1 veya Field 2’dekilerle birleşmişse, %70 puan alacak.
+    - Eğer kelime Field 1 veya Field 2’de bölünmüşse ve arada kelimeler varsa, aradaki mesafeye göre puanı düşecek.
+    - Field 3 kelimeleri **comma-separated** olacak, ancak kelime grupları parçalanacak.
     """
+
     field = []
     total_points = 0
     remaining_chars = field_limit
     field1_words = set(field1.split())
     field2_words = set(field2.split())
 
-    for kw, base_points, f1_points, f2_points, f3_points in keywords:
+    for kw, base_points, f1_points, f2_points, f3_points in sorted(keywords, key=lambda x: x[1], reverse=True):
         if kw in used_keywords:
-            continue  # Skip already used full keywords
+            continue  # Zaten kullanılan kelimeyi atla
 
         kw_words = kw.split()
         kw_set = set(kw_words)
 
-        # **Exact Match in Field 1 or Field 2 → Full Points**
+        # **Title veya Subtitle'da birebir varsa, Field 3'e eklenmez**
         if kw_set.issubset(field1_words) or kw_set.issubset(field2_words):
-            field.append(kw)
-            total_points += f3_points  # Full points
-            used_keywords.add(kw)
-            remaining_chars -= len(kw) + 1
             continue
 
-        # **Exact Match in Field 3 → Full Points**
-        if kw in field:
-            total_points += f3_points  # Full points
-            used_keywords.add(kw)
-            continue
-
-        # **Partial Match Between Field 1/2 & Field 3 → 0.7x Points**
+        # **Field 1 veya Field 2 içinde kelimenin bazı kısımları varsa, %70 puan alır**
         if any(word in field1_words or word in field2_words for word in kw_words):
-            field.append(kw)
-            total_points += f3_points * 0.7
-            used_keywords.add(kw)
-            remaining_chars -= len(kw) + 1
+            if remaining_chars - len(",".join(kw_words)) - 1 >= 0:
+                field.extend(kw_words)  # Kelimeyi bölerek ekler
+                total_points += f3_points * 0.7  # %70 puan
+                used_keywords.add(kw)
+                remaining_chars -= len(",".join(kw_words)) + 1
             continue
 
-        # **Handle Split Keywords with Distance Decay**
+        # **Eğer kelime parçalanmış halde Field 1 veya Field 2 içinde varsa, aradaki mesafeye göre düşen puan alır**
         words = kw.split()
         field3_words = field.copy()
 
-        # Determine separator length: 1 character for a comma if field is not empty.
         for word in words:
             normalized_word = normalize_word(word)
             if normalized_word not in used_words and normalized_word not in stop_words:
@@ -266,23 +259,25 @@ def fill_field_with_word_breaking(field_limit, keywords, used_words, used_keywor
                 if remaining_chars - (len(word) + sep_length) >= 0:
                     field.append(word)
 
-                    # **Find distance decay factor**
+                    # **Field 3'te araya kaç kelime girdiğine göre düşen puan hesaplanır**
                     field3_position = [field3_words.index(w) for w in words if w in field3_words]
                     if len(field3_position) > 1:
                         max_distance = max(
                             field3_position[i + 1] - field3_position[i] for i in range(len(field3_position) - 1)
                         )
-                        decay_factor = 1 / (max_distance + 1)  # Decay based on distance
+                        decay_factor = 1 / (max_distance + 1)  # Aradaki kelime sayısına göre bölerek düşür
                     else:
-                        decay_factor = 0.5  # Default decay if scattered
+                        decay_factor = 0.5  # Default decay eğer yayılmışsa
 
                     total_points += f3_points * decay_factor
                     used_words.add(normalized_word)
                     remaining_chars -= (len(word) + sep_length)
-                else:
-                    break  # Stop adding words if they don't fit
 
-    return field, total_points, used_keywords, field_limit - remaining_chars
+    # **Kelimeleri comma-separated şekilde birleştir**
+    field3_str = ",".join(field)
+
+    return field3_str, total_points, used_keywords, field_limit - remaining_chars
+
 
 
 
