@@ -189,7 +189,7 @@ def fill_field_with_word_breaking(field_limit, keywords, used_words, used_keywor
         for word in words:
             normalized_word = normalize_word(word)
             if normalized_word not in used_words and normalized_word not in stop_words:
-                sep_length = 1 if field else 0  # Comma separator if not empty
+                sep_length = 1 if field else 0
                 if remaining_chars - (len(word) + sep_length) >= 0:
                     field.append(word)
                     total_points += f3_points
@@ -251,25 +251,26 @@ if table_input:
         st.error(f"The pasted table must contain the following columns: {', '.join(required_columns)}")
         st.stop()
     else:
-        # Process competitor columns if they exist (including competitor5)
+        # Process competitor columns if they exist.
         competitor_columns = ["competitor1", "competitor2", "competitor3", "competitor4", "competitor5"]
-        if all(col in df_table.columns for col in competitor_columns):
-            df_table["Competitor1 Score"] = df_table["competitor1"].apply(update_competitor)
-            df_table["Competitor2 Score"] = df_table["competitor2"].apply(update_competitor)
-            df_table["Competitor3 Score"] = df_table["competitor3"].apply(update_competitor)
-            df_table["Competitor4 Score"] = df_table["competitor4"].apply(update_competitor)
-            df_table["Competitor5 Score"] = df_table["competitor5"].apply(update_competitor)
-            # Compute normalized competitor as the average of the five scores.
-            df_table["Normalized Competitor"] = (
-                df_table["Competitor1 Score"] +
-                df_table["Competitor2 Score"] +
-                df_table["Competitor3 Score"] +
-                df_table["Competitor4 Score"] +
-                df_table["Competitor5 Score"]
-            ) / 5
-            # Display competitor ranking and normalized competitor ranking.
+        # Find which competitor columns exist in the DataFrame.
+        existing_competitor_cols = [col for col in competitor_columns if col in df_table.columns]
+        if existing_competitor_cols:
+            for col in existing_competitor_cols:
+                df_table[f"{col.capitalize()} Score"] = df_table[col].apply(update_competitor)
+            if len(existing_competitor_cols) == 5:
+                df_table["Normalized Competitor"] = (
+                    df_table["competitor1"].apply(update_competitor) +
+                    df_table["competitor2"].apply(update_competitor) +
+                    df_table["competitor3"].apply(update_competitor) +
+                    df_table["competitor4"].apply(update_competitor) +
+                    df_table["competitor5"].apply(update_competitor)
+                ) / 5
+                display_columns = competitor_columns + ["Normalized Competitor"]
+            else:
+                display_columns = existing_competitor_cols
             st.subheader("Competitor Ranking & Normalized Competitor")
-            st.dataframe(df_table[["competitor1", "competitor2", "competitor3", "competitor4", "competitor5", "Normalized Competitor"]], use_container_width=True)
+            st.dataframe(df_table[display_columns], use_container_width=True)
         
         df_table["Normalized Difficulty"] = df_table["Difficulty"].apply(update_difficulty)
         df_table["Normalized Rank"] = df_table["Rank"].apply(update_rank)
@@ -286,6 +287,7 @@ if table_input:
         excel_keywords = df_table["Keyword"].dropna().tolist()
         
         st.subheader("Enter Word Lists")
+        
         first_field = st.text_input("Enter first text (max 30 characters)", max_chars=30)
         st.write("**Optimized Field 1:**", optimized_fields.get("Field 1")[0])
         
