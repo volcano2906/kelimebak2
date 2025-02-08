@@ -216,7 +216,9 @@ def fill_field_with_word_breaking(field_limit, keywords, used_words, used_keywor
     - Exact match in Field 1 or Field 2 → Full points
     - Partial match between Field 1/2 & Field 3 → 0.7x points
     - Distance decay: If words from Field 1/2 appear with gaps in Field 3, divide by distance
-    - Words in Field 3 are separated by commas (not spaces)
+    - Field 3 words are comma-separated (no spaces)
+    - Does not exceed 100 characters
+    - Stop words are excluded
     """
 
     field = []
@@ -229,25 +231,37 @@ def fill_field_with_word_breaking(field_limit, keywords, used_words, used_keywor
 
         words = kw.split()
         kw_set = set(words)
-        
+
+        # Exclude stop words from keyword processing
+        words = [word for word in words if word.lower() not in stop_words]
+
+        if not words:  # If all words were stop words, skip
+            continue
+
+        # Ensure Field 3 uses commas (no spaces)
+        kw_string = ",".join(words)
+
         # Case 1: Exact Match → Full Points
         if kw_set.issubset(used_words):
             points = base_points
-            field.append(kw)
+            field.append(kw_string)
             total_points += points
             used_keywords.add(kw)
-            remaining_chars -= len(kw) + 1  # +1 for comma separator
-        
+            used_words.update(words)
+            remaining_chars -= len(kw_string) + 1  # +1 for comma separator
+
         # Case 2: Partial Match in Field 1 or 2 → 0.7x Points
         elif any(word in used_words for word in words):
             points = base_points * 0.7
-            field.append(kw)
+            field.append(kw_string)
             total_points += points
             used_keywords.add(kw)
-            remaining_chars -= len(kw) + 1
-        
+            used_words.update(words)
+            remaining_chars -= len(kw_string) + 1
+
         # Case 3: Distance Decay Logic
         else:
+            # Find positions of words in Field 3
             field3_position = [i for i, word in enumerate(field) if word in words]
 
             if len(field3_position) > 1:
@@ -259,20 +273,24 @@ def fill_field_with_word_breaking(field_limit, keywords, used_words, used_keywor
             else:
                 points = base_points * 0.5  # Default decay if words are scattered
 
-            field.append(kw)
+            field.append(kw_string)
             total_points += points
             used_keywords.add(kw)
-            remaining_chars -= len(kw) + 1
+            used_words.update(words)
+            remaining_chars -= len(kw_string) + 1
 
         # Ensure field limit constraint (100 characters)
-        if remaining_chars < 0:
+        current_length = sum(len(item) + 1 for item in field) - 1  # Count comma separators
+        if current_length > field_limit:
             break
 
-    # Combine words with commas, ensuring no trailing comma
+    # Ensure final Field 3 string does not exceed 100 characters
     field3_str = ",".join(field)
-    field3_str = field3_str[:100]  # Ensure max 100 characters
+    if len(field3_str) > 100:
+        field3_str = field3_str[:100]
 
-    return field3_str, total_points, used_keywords, field_limit - remaining_chars
+    return field3_str, total_points, used_keywords, field_limit - len(field3_str)
+
 
 
 
