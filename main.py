@@ -91,7 +91,7 @@ def normalize_competitor(value):
         return 0
 
 # Function to calculate final points
-def calculate_points(row):
+def calculate_final_score(row):
     try:
         volume = float(row["Volume"])
         normalized_competitor = float(row["All Competitor Score"])
