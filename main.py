@@ -112,16 +112,151 @@ def calculate_points(row):
 # Part 2: Optimization Functions
 ##############################
 
+
 def calculate_effective_points(keyword_list):
     """Calculate effective points per keyword and new keyword combinations based on total point."""
     def keyword_score(keyword, base_points):
         words = keyword.split()
         if len(words) == 1:
-            return base_points  
+            return base_points  # Exact match (single word)
         return sum(base_points / (i + 1) for i in range(len(words) - 1))
     
     return [(kw, points, keyword_score(kw, points), keyword_score(kw, points), keyword_score(kw, points) * (1/3))
             for kw, points in keyword_list]
+
+def sort_keywords_by_total_points(keyword_list):
+    """Sort keywords by total calculated points instead of per character efficiency."""
+    return sorted(keyword_list, key=lambda x: x[1], reverse=True)
+
+def normalize_word(word):
+    """Normalize words to handle singular/plural variations"""
+    return word.rstrip('s')
+
+def expand_keywords(keyword_list, max_length=29):
+    """Generate potential keyword combinations based on existing keywords and calculate their adjusted points, ensuring max length constraint."""
+    expanded_keywords = set(keyword_list)
+    keyword_map = {kw: points for kw, points in keyword_list}
+
+    for kw1, points1 in keyword_list:
+        for kw2, points2 in keyword_list:
+            if kw1 != kw2:
+                words1 = kw1.split()
+                words2 = kw2.split()
+
+                # Combine words ensuring no duplicates
+                combined = words1 + [w for w in words2 if w not in words1]
+
+                # Ensure distinct words
+                if len(set(combined)) != len(combined):
+                    continue
+
+                new_kw = " ".join(combined)
+
+                # Check if new keyword fits character limit and is unique
+                if new_kw not in keyword_map and new_kw not in expanded_keywords and len(new_kw) <= max_length:
+                    # Handle common words for distance calculation
+                    common_words = set(words1) & set(words2)
+                    if common_words:
+                        overlap_word = list(common_words)[0]  # Take the first common word
+                        index1 = words1.index(overlap_word)
+                        index2 = words2.index(overlap_word)
+
+                        # Correct distance calculation: count words between occurrences
+                        distance = abs((len(words1) - 1 - index1) + index2)
+                        new_points = points1 + (points2 / (distance + 1))
+                    else:
+                        new_points = points1 + points2
+
+                    # Final distinct word check
+                    if len(set(new_kw.split())) == len(new_kw.split()):
+                        expanded_keywords.add((new_kw, new_points))
+
+    return list(expanded_keywords)
+
+def construct_best_phrase(field_limit, keywords, multiplier, used_words, used_keywords):
+    """Constructs the highest scoring phrase dynamically by combining keywords."""
+    field = []
+    total_points = 0
+    remaining_chars = field_limit
+    
+    sorted_keywords = sort_keywords_by_total_points(keywords)
+    while remaining_chars > 0 and sorted_keywords:
+        best_keyword = sorted_keywords.pop(0)
+        kw, base_points, f1_points, f2_points, f3_points = best_keyword
+        words = kw.split()
+        normalized_words = {normalize_word(word) for word in words}
+        
+        if kw not in used_keywords and not normalized_words.intersection(used_words):
+            if remaining_chars - len(kw) >= 0:
+                field.append(kw)
+                total_points += base_points * field_limit * multiplier
+                used_keywords.add(kw)
+                used_words.update(normalized_words)
+                remaining_chars -= len(kw) + 1  # +1 for space
+    
+    return field, total_points, used_keywords, field_limit - remaining_chars
+
+def fill_field_with_word_breaking(field_limit, keywords, used_words, used_keywords, stop_words):
+    """
+    Fill Field 3 with word breaking, ensuring that adding a word (plus a comma if needed)
+    does not exceed the field_limit (100 characters).
+    """
+    field = []
+    total_points = 0
+    remaining_chars = field_limit
+    
+    for kw, base_points, f1_points, f2_points, f3_points in keywords:
+        if kw in used_keywords:
+            continue  # Skip already used full keywords
+        words = kw.split()
+        for word in words:
+            normalized_word = normalize_word(word)
+            if normalized_word not in used_words and normalized_word not in stop_words:
+                # Determine separator length: 1 character for a comma if field is not empty.
+                sep_length = 1 if field else 0
+                if remaining_chars - (len(word) + sep_length) >= 0:
+                    field.append(word)
+                    total_points += f3_points  # Full points if the word is used
+                    used_words.add(normalized_word)
+                    remaining_chars -= (len(word) + sep_length)
+                else:
+                    # Stop adding words if the next one doesn't fit.
+                    break
+    return field, total_points, used_keywords, field_limit - remaining_chars
+
+def optimize_keyword_placement(keyword_list):
+    """Optimize keyword placement across three fields for maximum points."""
+    stop_words = {"the", "and", "for", "to", "of", "an", "a", "in", "on", "with", "by", "as", "at", "is","app","free"}
+    expanded_keywords = expand_keywords(keyword_list, max_length=29)
+    sorted_keywords = calculate_effective_points(expanded_keywords)
+    used_words = set()
+    used_keywords = set()
+    
+    # Construct best phrase dynamically for Field 1 (multiplier 1)
+    field1, points1, used_kw1, length1 = construct_best_phrase(29, sorted_keywords, 1, used_words, used_keywords)
+    
+    # Construct best phrase dynamically for Field 2 (multiplier 1)
+    field2, points2, used_kw2, length2 = construct_best_phrase(29, sorted_keywords, 1, used_words, used_keywords)
+    
+    # Fill Field 3 (multiplier 1/3, allows word breaking) with a 100-character limit
+    field3, points3, used_kw3, length3 = fill_field_with_word_breaking(100, sorted_keywords, used_words, used_keywords, stop_words)
+    points3 *= (1/3)
+    
+    # Join Field 3 keywords with a comma (no extra space)
+    field3_str = ",".join(field3)
+    # Ensure that the final string does not exceed 100 characters.
+    if len(field3_str) > 100:
+        field3_str = field3_str[:100]
+    
+    total_points = points1 + points2 + points3
+    
+    return {
+        "Field 1": (" ".join(field1), points1, length1),
+        "Field 2": (" ".join(field2), points2, length2),
+        "Field 3": (field3_str, points3, len(field3_str)),
+        "Total Points": total_points
+    }
+
 
 ##############################
 # Part 3: Streamlit Interface
