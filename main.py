@@ -301,7 +301,15 @@ def optimize_keyword_placement(keyword_list):
     field2, points2, used_kw2, length2 = construct_best_phrase(29, sorted_keywords, 1, used_words, used_keywords)
     
     # Fill Field 3 (multiplier 1/3, allows word breaking) with a 100-character limit
-    field3, points3, used_kw3, length3 = fill_field_with_word_breaking(100, sorted_keywords, used_words, used_keywords, stop_words)
+    field3, points3, used_kw3, length3 = fill_field_with_word_breaking(
+    100,  # Field limit (100 characters for Field 3)
+    sorted_keywords,  # The keyword list sorted by points
+    used_words,  # Words already used
+    used_keywords,  # Keywords already used
+    stop_words,  # Common words to ignore
+    " ".join(field1),  # Convert Field 1 list to a string
+    " ".join(field2)   # Convert Field 2 list to a string
+    )
     points3 *= (1/1)
     
     # Join Field 3 keywords with a comma (no extra space)
