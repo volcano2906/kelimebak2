@@ -300,7 +300,7 @@ if table_input:
             df_table[f"Normalized {col}"] = df_table[col].apply(normalize_competitor)
         # Create "All Competitor Score" as the sum of all normalized competitors divided by 5
         df_table["All Competitor Score"] = df_table[["Normalized Competitor1", "Normalized Competitor2", "Normalized Competitor3", 
-                                 "Normalized Competitor4", "Normalized Competitor5"]].sum(axis=1) / 5
+                                 "Normalized Competitor4", "Normalized Competitor5"]].sum(axis=1) / 8
         df_table["Final Score"] = df_table.apply(calculate_final_score, axis=1)
         df_table = df_table.drop(columns=["Chance", "KEI"])
         df_table = df_table.sort_values(by="Final Score", ascending=False)
