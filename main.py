@@ -216,6 +216,7 @@ def fill_field_with_word_breaking(field_limit, keywords, used_words, used_keywor
     - Exact match in Field 1 or Field 2 → Full points
     - Partial match between Field 1/2 & Field 3 → 0.7x points
     - Distance decay: If words from Field 1/2 appear with gaps in Field 3, divide by distance
+    - Words in Field 3 are separated by commas (not spaces)
     """
 
     field = []
@@ -247,7 +248,6 @@ def fill_field_with_word_breaking(field_limit, keywords, used_words, used_keywor
         
         # Case 3: Distance Decay Logic
         else:
-            # Find positions of words in Field 3
             field3_position = [i for i, word in enumerate(field) if word in words]
 
             if len(field3_position) > 1:
@@ -268,7 +268,12 @@ def fill_field_with_word_breaking(field_limit, keywords, used_words, used_keywor
         if remaining_chars < 0:
             break
 
-    return field, total_points, used_keywords, field_limit - remaining_chars
+    # Combine words with commas, ensuring no trailing comma
+    field3_str = ",".join(field)
+    field3_str = field3_str[:100]  # Ensure max 100 characters
+
+    return field3_str, total_points, used_keywords, field_limit - remaining_chars
+
 
 
 def optimize_keyword_placement(keyword_list):
