@@ -96,7 +96,7 @@ def calculate_final_score(row):
         final_score = 0
     return final_score
 
-# New: Function to update competitor values based on specified ranges
+# New: Function to update competitor values
 def update_competitor(value):
     try:
         value = float(value)
@@ -176,8 +176,8 @@ def construct_best_phrase(field_limit, keywords, multiplier, used_words, used_ke
 
 def fill_field_with_word_breaking(field_limit, keywords, used_words, used_keywords, stop_words):
     """
-    Fill Field 3 with word breaking. Words are appended only if the
-    final joined string (with commas) does not exceed the field_limit (100 characters).
+    Fill Field 3 with word breaking, ensuring that adding a word (plus a comma if needed)
+    does not exceed the field_limit (100 characters).
     """
     field = []
     total_points = 0
@@ -189,7 +189,7 @@ def fill_field_with_word_breaking(field_limit, keywords, used_words, used_keywor
         for word in words:
             normalized_word = normalize_word(word)
             if normalized_word not in used_words and normalized_word not in stop_words:
-                sep_length = 1 if field else 0  # Comma separator length if field not empty.
+                sep_length = 1 if field else 0  # Comma separator if not empty
                 if remaining_chars - (len(word) + sep_length) >= 0:
                     field.append(word)
                     total_points += f3_points
@@ -206,7 +206,6 @@ def optimize_keyword_placement(keyword_list):
     sorted_keywords = calculate_effective_points(expanded_keywords)
     used_words = set()
     used_keywords = set()
-    
     field1, points1, used_kw1, length1 = construct_best_phrase(29, sorted_keywords, 1, used_words, used_keywords)
     field2, points2, used_kw2, length2 = construct_best_phrase(29, sorted_keywords, 1, used_words, used_keywords)
     field3, points3, used_kw3, length3 = fill_field_with_word_breaking(100, sorted_keywords, used_words, used_keywords, stop_words)
@@ -252,7 +251,7 @@ if table_input:
         st.error(f"The pasted table must contain the following columns: {', '.join(required_columns)}")
         st.stop()
     else:
-        # Process competitor columns if they exist.
+        # Process competitor columns if they exist (including competitor5)
         competitor_columns = ["competitor1", "competitor2", "competitor3", "competitor4", "competitor5"]
         if all(col in df_table.columns for col in competitor_columns):
             df_table["Competitor1 Score"] = df_table["competitor1"].apply(update_competitor)
@@ -260,7 +259,7 @@ if table_input:
             df_table["Competitor3 Score"] = df_table["competitor3"].apply(update_competitor)
             df_table["Competitor4 Score"] = df_table["competitor4"].apply(update_competitor)
             df_table["Competitor5 Score"] = df_table["competitor5"].apply(update_competitor)
-            # Compute the normalized competitor score as the average of the five competitor scores.
+            # Compute normalized competitor as the average of the five scores.
             df_table["Normalized Competitor"] = (
                 df_table["Competitor1 Score"] +
                 df_table["Competitor2 Score"] +
@@ -268,6 +267,9 @@ if table_input:
                 df_table["Competitor4 Score"] +
                 df_table["Competitor5 Score"]
             ) / 5
+            # Display competitor ranking and normalized competitor ranking.
+            st.subheader("Competitor Ranking & Normalized Competitor")
+            st.dataframe(df_table[["competitor1", "competitor2", "competitor3", "competitor4", "competitor5", "Normalized Competitor"]], use_container_width=True)
         
         df_table["Normalized Difficulty"] = df_table["Difficulty"].apply(update_difficulty)
         df_table["Normalized Rank"] = df_table["Rank"].apply(update_rank)
@@ -285,15 +287,12 @@ if table_input:
         
         st.subheader("Enter Word Lists")
         
-        # First text input and its optimized field (Field 1)
         first_field = st.text_input("Enter first text (max 30 characters)", max_chars=30)
         st.write("**Optimized Field 1:**", optimized_fields.get("Field 1")[0])
         
-        # Second text input and its optimized field (Field 2)
         second_field = st.text_input("Enter second text (max 30 characters)", max_chars=30)
         st.write("**Optimized Field 2:**", optimized_fields.get("Field 2")[0])
         
-        # Third text input and its optimized field (Field 3)
         third_field = st.text_input("Enter third text (comma or space-separated, max 100 characters)", max_chars=100)
         st.write("**Optimized Field 3:**", optimized_fields.get("Field 3")[0])
         
