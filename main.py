@@ -274,9 +274,10 @@ def fill_field_with_word_breaking(field_limit, keywords, used_words, used_keywor
                     remaining_chars -= (len(word) + sep_length)
 
     # **Kelimeleri comma-separated şekilde birleştir**
-    field3_str = ",".join(field)
+    field3_str = ",".join(set(field))  # Set kullanarak tekrar eden kelimeleri engelle
 
     return field3_str, total_points, used_keywords, field_limit - remaining_chars
+
 
 
 
