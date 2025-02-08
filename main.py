@@ -299,7 +299,7 @@ if table_input:
         for col in ["Competitor1", "Competitor2", "Competitor3", "Competitor4", "Competitor5"]:
             df_table[f"Normalized {col}"] = df_table[col].apply(normalize_competitor)
         # Create "All Competitor Score" as the sum of all normalized competitors divided by 5
-        df["All Competitor Score"] = df[["Normalized Competitor1", "Normalized Competitor2", "Normalized Competitor3", 
+        df_table["All Competitor Score"] = df_table[["Normalized Competitor1", "Normalized Competitor2", "Normalized Competitor3", 
                                  "Normalized Competitor4", "Normalized Competitor5"]].sum(axis=1) / 5
         df_table["Final Score"] = df_table.apply(calculate_final_score, axis=1)
         df_table = df_table.drop(columns=["Chance", "KEI"])
