@@ -262,67 +262,70 @@ def optimize_keyword_placement(keyword_list):
 # Part 3: Streamlit Interface
 ##############################
 
+
 # Text area for pasting table data
-table_input = st.text_area("Paste your Excel table data (tab-separated)", height=200)
+table_input = st.text_area("Paste your Excel table data", height=200)
 
 if table_input:
     try:
         table_io = io.StringIO(table_input)
-        df = pd.read_csv(table_io, sep="\t")
+        df_table = pd.read_csv(table_io, sep="\t")
     except Exception as e:
         st.error(f"Error reading table data: {e}")
         st.stop()
-
-    required_columns = [
-        "Keyword", "Volume", "Difficulty", "Results", "Rank", 
-        "Competitor1", "Competitor2", "Competitor3", "Competitor4", "Competitor5"
-    ]
     
-    if not all(col in df.columns for col in required_columns):
-        st.error(f"Missing columns in the data. Required: {', '.join(required_columns)}")
+    required_columns = ["Keyword", "Volume", "Difficulty", "Chance", "KEI", "Results", "Rank"]
+    if not all(col in df_table.columns for col in required_columns):
+        st.error(f"The pasted table must contain the following columns: {', '.join(required_columns)}")
         st.stop()
-
-    # Apply normalization to competitor columns
-    for col in ["Competitor1", "Competitor2", "Competitor3", "Competitor4", "Competitor5"]:
-        df[f"Normalized {col}"] = df[col].apply(normalize_competitor)
-
-    # Create "All Competitor Score"
-    df["All Competitor Score"] = df[
-        ["Normalized Competitor1", "Normalized Competitor2", "Normalized Competitor3",
-         "Normalized Competitor4", "Normalized Competitor5"]
-    ].sum(axis=1) / 5
-
-    # Ensure All Competitor Score is at least 1
-    df["All Competitor Score"] = df["All Competitor Score"].apply(lambda x: 1 if x == 0 else x)
-
-    # Apply normalization functions
-    df["Normalized Difficulty"] = df["Difficulty"].apply(update_difficulty)
-    df["Normalized Rank"] = df["Rank"].apply(update_rank)
-    df["Calculated Result"] = df["Results"].apply(update_result)
-
-    # Calculate "Final Points"
-    df["Final Points"] = df.apply(calculate_points, axis=1)
-
-    # Apply effective points calculation
-    keyword_list = list(zip(df["Keyword"].tolist(), df["Final Points"].tolist()))
-    effective_points_list = calculate_effective_points(keyword_list)
-
-    # Convert effective points into a DataFrame
-    effective_points_df = pd.DataFrame(effective_points_list, columns=[
-        "Keyword", "Final Points", "Effective Points 1", "Effective Points 2", "Effective Points 3"
-    ])
-
-    # Merge with the main DataFrame
-    df = df.merge(effective_points_df, on="Keyword", how="left")
-
-    # Display the updated DataFrame
-    st.write("### Processed Data with Normalization and Final Score Calculation")
-    st.dataframe(df, use_container_width=True)
-
-    # Download button for the processed data
-    st.download_button(
-        label="Download Processed Data as CSV",
-        data=df.to_csv(index=False, encoding="utf-8"),
-        file_name="processed_keyword_analysis.csv",
-        mime="text/csv"
-    )
+    else:
+        # Normalize and calculate columns
+        df_table["Normalized Difficulty"] = df_table["Difficulty"].apply(update_difficulty)
+        df_table["Normalized Rank"] = df_table["Rank"].apply(update_rank)
+        df_table["Calculated Result"] = df_table["Results"].apply(update_result)
+        df_table["Final Score"] = df_table.apply(calculate_final_score, axis=1)
+        df_table = df_table.drop(columns=["Chance", "KEI"])
+        df_table = df_table.sort_values(by="Final Score", ascending=False)
+        
+        # Build the keyword list for optimization from the Excel data:
+        # Each tuple: (Keyword, Final Score)
+        opt_keyword_list = list(zip(df_table["Keyword"].tolist(), df_table["Final Score"].tolist()))
+        optimized_fields = optimize_keyword_placement(opt_keyword_list)
+        
+        # Extract all keywords (for word analysis) from the table
+        excel_keywords = df_table["Keyword"].dropna().tolist()
+        
+        ##############################
+        # Display Text Inputs and Optimized Results
+        ##############################
+        st.subheader("Enter Word Lists")
+        
+        # First text input and its optimized field (Field 1)
+        first_field = st.text_input("Enter first text (max 30 characters)", max_chars=30)
+        st.write("**Optimized Field 1:**", optimized_fields.get("Field 1")[0])
+        
+        # Second text input and its optimized field (Field 2)
+        second_field = st.text_input("Enter second text (max 30 characters)", max_chars=30)
+        st.write("**Optimized Field 2:**", optimized_fields.get("Field 2")[0])
+        
+        # Third text input and its optimized field (Field 3)
+        third_field = st.text_input("Enter third text (comma or space-separated, max 100 characters)", max_chars=100)
+        st.write("**Optimized Field 3:**", optimized_fields.get("Field 3")[0])
+        
+        # Combine the three fields for word analysis
+        combined_text = f"{first_field} {second_field} {third_field}".strip()
+        
+        # Perform word analysis on the combined text using keywords from Excel
+        analysis_df = analyze_words(excel_keywords, combined_text)
+        st.write("### Word Analysis Results")
+        st.dataframe(analysis_df, use_container_width=True)
+        st.dataframe(df_table, use_container_width=True)
+        st.download_button(
+            label="Download Word Analysis CSV",
+            data=analysis_df.to_csv(index=False, encoding="utf-8"),
+            file_name="word_presence_analysis.csv",
+            mime="text/csv"
+        )
+        
+else:
+    st.write("Please paste your table data to proceed.")
