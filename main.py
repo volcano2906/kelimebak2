@@ -15,6 +15,29 @@ st.title("Keyword Analysis with Competitor Normalization & Score Calculation")
 # Part 1: Data Processing Code
 ##############################
 
+# Function to perform word-level analysis on the keywords
+def analyze_words(keywords, combined_text):
+    # For each keyword, split into individual words and join them with a comma for display
+    keywords_with_words = {phrase: ", ".join(phrase.split()) for phrase in keywords}
+    # Normalize the combined text (handling patterns like "english,american,")
+    combined_normalized = [word.strip().lower() for word in combined_text.replace(",", " ").split() if word.strip()]
+    # Build the analysis: for each phrase, list its words and append those not found in the combined list
+    results = {
+        phrase: {
+            "Split Words": keywords_with_words[phrase],
+            "Status": ",".join([word for word in phrase.split() if word.lower() not in combined_normalized])
+        }
+        for phrase in keywords_with_words
+    }
+    # Convert the results dictionary into a DataFrame for display
+    results_df = pd.DataFrame([
+        {"Phrase": phrase,
+         "Split Words": data["Split Words"],
+         "Status": data["Status"]}
+        for phrase, data in results.items()
+    ])
+    return results_df
+
 # Function to update/normalize the Difficulty column
 def update_difficulty(diff):
     try:
