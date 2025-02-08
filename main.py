@@ -266,7 +266,7 @@ if table_input:
         
         # Extract all keywords (for word analysis) from the table
         excel_keywords = df_table["Keyword"].dropna().tolist()
-        
+        st.dataframe(df_table, use_container_width=True)
         st.subheader("Enter Word Lists")
         
         first_field = st.text_input("Enter first text (max 30 characters)", max_chars=30)
