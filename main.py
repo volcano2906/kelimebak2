@@ -5,11 +5,13 @@ Created on Fri Feb  7 21:39:43 2025
 @author: volka
 """
 
+
+
 import streamlit as st
 import pandas as pd
 import io
-
-st.title("Keyword Analysis with Competitor Normalization & Score Calculation")
+import itertools
+from collections import defaultdict
 
 ##############################
 # Part 1: Data Processing Code
@@ -61,7 +63,8 @@ def update_difficulty(diff):
     else:
         return 1.0
 
-# Function to update/normalize the Rank column
+# Function to update/normalize the Rank column.
+# If rank is empty or null, assign 250 before applying normalization rules.
 def update_rank(rank):
     try:
         rank = float(rank)
@@ -78,7 +81,7 @@ def update_rank(rank):
     else:
         return 1
 
-# Function to update/normalize the Results column
+# Function to update/normalize the Results column into a Calculated Result
 def update_result(res):
     try:
         res = float(res)
@@ -93,48 +96,25 @@ def update_result(res):
     else:
         return 1
 
-# Function to normalize competitor values
-def normalize_competitor(value):
-    try:
-        value = float(value)  
-    except:
-        return 0  
-
-    if 1 <= value <= 10:
-        return 5
-    elif 11 <= value <= 20:
-        return 4.5
-    elif 21 <= value <= 30:
-        return 4.2
-    elif 31 <= value <= 60:
-        return 4
-    elif 61 <= value <= 100:
-        return 3
-    else:
-        return 0
-
-# Function to calculate final points
+# Function to calculate the Final Score based on the formula:
+# (Volume / Normalized Difficulty) * Normalized Rank * Calculated Result
 def calculate_final_score(row):
     try:
         volume = float(row["Volume"])
-        normalized_competitor = float(row["All Competitor Score"])
-        normalized_difficulty = float(row["Normalized Difficulty"])
-        normalized_rank = float(row["Normalized Rank"])
-        calculated_result = float(row["Calculated Result"])
-
-        if normalized_difficulty == 0:  
-            return 0
-
-        points = (volume * normalized_competitor / normalized_difficulty) * normalized_rank * calculated_result
+    except:
+        volume = 0
+    nd = row["Normalized Difficulty"]
+    nr = row["Normalized Rank"]
+    cr = row["Calculated Result"]
+    try:
+        final_score = (volume / nd) * nr * cr
     except Exception:
-        points = 0
-
-    return points
+        final_score = 0
+    return final_score
 
 ##############################
 # Part 2: Optimization Functions
 ##############################
-
 
 def calculate_effective_points(keyword_list):
     """Calculate effective points per keyword and new keyword combinations based on total point."""
@@ -280,11 +260,9 @@ def optimize_keyword_placement(keyword_list):
         "Total Points": total_points
     }
 
-
 ##############################
 # Part 3: Streamlit Interface
 ##############################
-
 
 # Text area for pasting table data
 table_input = st.text_area("Paste your Excel table data", height=200)
