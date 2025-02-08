@@ -1,12 +1,3 @@
-# -*- coding: utf-8 -*-
-"""
-Created on Fri Feb  7 21:39:43 2025
-
-@author: volka
-"""
-
-
-
 import streamlit as st
 import pandas as pd
 import io
