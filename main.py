@@ -135,7 +135,7 @@ def calculate_effective_points(keyword_list):
             return base_points  # Exact match (single word)
         return sum(base_points / (i + 1) for i in range(len(words) - 1))
     
-    return [(kw, points, keyword_score(kw, points), keyword_score(kw, points), keyword_score(kw, points)))
+    return [(kw, points, keyword_score(kw, points), keyword_score(kw, points), keyword_score(kw, points))
             for kw, points in keyword_list]
 
 def sort_keywords_by_total_points(keyword_list):
