@@ -9,11 +9,11 @@ from collections import defaultdict
 ##############################
 
 def analyze_words(keywords, combined_text):
-    # For each keyword, split into individual words and join them with a comma for display
+    # For each keyword, split into individual words and join them with a comma for display.
     keywords_with_words = {phrase: ", ".join(phrase.split()) for phrase in keywords}
     # Normalize the combined text (handling patterns like "english,american,")
     combined_normalized = [word.strip().lower() for word in combined_text.replace(",", " ").split() if word.strip()]
-    # Build the analysis: for each phrase, list its words and append those not found in the combined list
+    # Build the analysis: for each phrase, list its words and note those missing from the combined list.
     results = {
         phrase: {
             "Split Words": keywords_with_words[phrase],
@@ -21,7 +21,6 @@ def analyze_words(keywords, combined_text):
         }
         for phrase in keywords_with_words
     }
-    # Convert the results dictionary into a DataFrame for display
     results_df = pd.DataFrame([
         {"Phrase": phrase,
          "Split Words": data["Split Words"],
@@ -170,6 +169,10 @@ def construct_best_phrase(field_limit, keywords, multiplier, used_words, used_ke
     return field, total_points, used_keywords, field_limit - remaining_chars
 
 def fill_field_with_word_breaking(field_limit, keywords, used_words, used_keywords, stop_words):
+    """
+    Fill Field 3 with word breaking, ensuring that adding a word (plus a comma if needed)
+    does not exceed the field_limit (100 characters).
+    """
     field = []
     total_points = 0
     remaining_chars = field_limit
@@ -180,7 +183,7 @@ def fill_field_with_word_breaking(field_limit, keywords, used_words, used_keywor
         for word in words:
             normalized_word = normalize_word(word)
             if normalized_word not in used_words and normalized_word not in stop_words:
-                sep_length = 1 if field else 0
+                sep_length = 1 if field else 0  # Comma separator length if not empty.
                 if remaining_chars - (len(word) + sep_length) >= 0:
                     field.append(word)
                     total_points += f3_points
@@ -191,6 +194,7 @@ def fill_field_with_word_breaking(field_limit, keywords, used_words, used_keywor
     return field, total_points, used_keywords, field_limit - remaining_chars
 
 def optimize_keyword_placement(keyword_list):
+    """Optimize keyword placement across three fields for maximum points."""
     stop_words = {"the", "and", "for", "to", "of", "an", "a", "in", "on", "with", "by", "as", "at", "is", "app", "free"}
     expanded_keywords = expand_keywords(keyword_list, max_length=29)
     sorted_keywords = calculate_effective_points(expanded_keywords)
@@ -242,17 +246,27 @@ if table_input:
         st.stop()
     else:
         # Process competitor columns if they exist.
-        competitor_columns = ["competitor1", "competitor2", "competitor3", "competitor4"]
-        if all(col in df_table.columns for col in competitor_columns):
-            df_table["Competitor1 Score"] = df_table["competitor1"].apply(update_competitor)
-            df_table["Competitor2 Score"] = df_table["competitor2"].apply(update_competitor)
-            df_table["Competitor3 Score"] = df_table["competitor3"].apply(update_competitor)
-            df_table["Competitor4 Score"] = df_table["competitor4"].apply(update_competitor)
-            df_table["All Competitor"] = (df_table["Competitor1 Score"] + 
-                                          df_table["Competitor2 Score"] + 
-                                          df_table["Competitor3 Score"] + 
-                                          df_table["Competitor4 Score"]) / 4
-
+        competitor_columns = ["competitor1", "competitor2", "competitor3", "competitor4", "competitor5"]
+        existing_competitor_cols = [col for col in competitor_columns if col in df_table.columns]
+        if existing_competitor_cols:
+            for col in existing_competitor_cols:
+                # Create a score column with a capitalized header.
+                df_table[f"{col.capitalize()} Score"] = df_table[col].apply(update_competitor)
+            # If all five competitor columns exist, compute the normalized competitor score.
+            if len(existing_competitor_cols) == 5:
+                df_table["Normalized Competitor"] = (
+                    df_table["competitor1"].apply(update_competitor) +
+                    df_table["competitor2"].apply(update_competitor) +
+                    df_table["competitor3"].apply(update_competitor) +
+                    df_table["competitor4"].apply(update_competitor) +
+                    df_table["competitor5"].apply(update_competitor)
+                ) / 5
+                display_columns = competitor_columns + ["Normalized Competitor"]
+            else:
+                display_columns = existing_competitor_cols
+            st.subheader("Competitor Ranking & Normalized Competitor")
+            st.dataframe(df_table[display_columns], use_container_width=True)
+        
         df_table["Normalized Difficulty"] = df_table["Difficulty"].apply(update_difficulty)
         df_table["Normalized Rank"] = df_table["Rank"].apply(update_rank)
         df_table["Calculated Result"] = df_table["Results"].apply(update_result)
@@ -264,9 +278,10 @@ if table_input:
         opt_keyword_list = list(zip(df_table["Keyword"].tolist(), df_table["Final Score"].tolist()))
         optimized_fields = optimize_keyword_placement(opt_keyword_list)
         
-        # Extract all keywords (for word analysis) from the table
+        # Extract all keywords (for word analysis) from the table.
         excel_keywords = df_table["Keyword"].dropna().tolist()
         st.dataframe(df_table, use_container_width=True)
+        
         st.subheader("Enter Word Lists")
         
         first_field = st.text_input("Enter first text (max 30 characters)", max_chars=30)
