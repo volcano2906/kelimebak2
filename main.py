@@ -96,7 +96,7 @@ def calculate_final_score(row):
         final_score = 0
     return final_score
 
-# New: Function to update competitor values
+# --- New: Function to update competitor columns ---
 def update_competitor(value):
     try:
         value = float(value)
@@ -120,7 +120,6 @@ def update_competitor(value):
 ##############################
 
 def calculate_effective_points(keyword_list):
-    """Calculate effective points per keyword and new keyword combinations based on total point."""
     def keyword_score(keyword, base_points):
         words = keyword.split()
         if len(words) == 1:
@@ -130,15 +129,12 @@ def calculate_effective_points(keyword_list):
             for kw, points in keyword_list]
 
 def sort_keywords_by_total_points(keyword_list):
-    """Sort keywords by total calculated points."""
     return sorted(keyword_list, key=lambda x: x[1], reverse=True)
 
 def normalize_word(word):
-    """Normalize words to handle singular/plural variations."""
     return word.rstrip('s')
 
 def expand_keywords(keyword_list, max_length=29):
-    """Generate potential keyword combinations and calculate their adjusted points."""
     expanded_keywords = set(keyword_list)
     keyword_map = {kw: points for kw, points in keyword_list}
     for kw1, points1 in keyword_list:
@@ -155,7 +151,6 @@ def expand_keywords(keyword_list, max_length=29):
     return list(expanded_keywords)
 
 def construct_best_phrase(field_limit, keywords, multiplier, used_words, used_keywords):
-    """Construct the highest scoring phrase dynamically."""
     field = []
     total_points = 0
     remaining_chars = field_limit
@@ -175,10 +170,6 @@ def construct_best_phrase(field_limit, keywords, multiplier, used_words, used_ke
     return field, total_points, used_keywords, field_limit - remaining_chars
 
 def fill_field_with_word_breaking(field_limit, keywords, used_words, used_keywords, stop_words):
-    """
-    Fill Field 3 with word breaking, ensuring that adding a word (plus a comma if needed)
-    does not exceed the field_limit (100 characters).
-    """
     field = []
     total_points = 0
     remaining_chars = field_limit
@@ -200,7 +191,6 @@ def fill_field_with_word_breaking(field_limit, keywords, used_words, used_keywor
     return field, total_points, used_keywords, field_limit - remaining_chars
 
 def optimize_keyword_placement(keyword_list):
-    """Optimize keyword placement across three fields for maximum points."""
     stop_words = {"the", "and", "for", "to", "of", "an", "a", "in", "on", "with", "by", "as", "at", "is", "app", "free"}
     expanded_keywords = expand_keywords(keyword_list, max_length=29)
     sorted_keywords = calculate_effective_points(expanded_keywords)
@@ -252,26 +242,17 @@ if table_input:
         st.stop()
     else:
         # Process competitor columns if they exist.
-        competitor_columns = ["competitor1", "competitor2", "competitor3", "competitor4", "competitor5"]
-        # Find which competitor columns exist in the DataFrame.
-        existing_competitor_cols = [col for col in competitor_columns if col in df_table.columns]
-        if existing_competitor_cols:
-            for col in existing_competitor_cols:
-                df_table[f"{col.capitalize()} Score"] = df_table[col].apply(update_competitor)
-            if len(existing_competitor_cols) == 5:
-                df_table["Normalized Competitor"] = (
-                    df_table["competitor1"].apply(update_competitor) +
-                    df_table["competitor2"].apply(update_competitor) +
-                    df_table["competitor3"].apply(update_competitor) +
-                    df_table["competitor4"].apply(update_competitor) +
-                    df_table["competitor5"].apply(update_competitor)
-                ) / 5
-                display_columns = competitor_columns + ["Normalized Competitor"]
-            else:
-                display_columns = existing_competitor_cols
-            st.subheader("Competitor Ranking & Normalized Competitor")
-            st.dataframe(df_table[display_columns], use_container_width=True)
-        
+        competitor_columns = ["competitor1", "competitor2", "competitor3", "competitor4"]
+        if all(col in df_table.columns for col in competitor_columns):
+            df_table["Competitor1 Score"] = df_table["competitor1"].apply(update_competitor)
+            df_table["Competitor2 Score"] = df_table["competitor2"].apply(update_competitor)
+            df_table["Competitor3 Score"] = df_table["competitor3"].apply(update_competitor)
+            df_table["Competitor4 Score"] = df_table["competitor4"].apply(update_competitor)
+            df_table["All Competitor"] = (df_table["Competitor1 Score"] + 
+                                          df_table["Competitor2 Score"] + 
+                                          df_table["Competitor3 Score"] + 
+                                          df_table["Competitor4 Score"]) / 4
+
         df_table["Normalized Difficulty"] = df_table["Difficulty"].apply(update_difficulty)
         df_table["Normalized Rank"] = df_table["Rank"].apply(update_rank)
         df_table["Calculated Result"] = df_table["Results"].apply(update_result)
