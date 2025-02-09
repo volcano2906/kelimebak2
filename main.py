@@ -4,7 +4,7 @@ import io
 import itertools
 from collections import defaultdict
 import re
-
+st.set_page_config(layout="wide")
 
 ##############################
 # Part 1: Data Processing Code
