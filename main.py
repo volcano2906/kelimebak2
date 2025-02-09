@@ -77,9 +77,9 @@ def update_difficulty(diff):
     except:
         return None
     if 0 <= diff <= 5:
-        return 0.6
+        return 0.7
     elif 6 <= diff <= 10:
-        return 0.8
+        return 0.9
     elif 11 <= diff <= 20:
         return 1
     elif 21 <= diff <= 30:
@@ -87,9 +87,9 @@ def update_difficulty(diff):
     elif 31 <= diff <= 40:
         return 3
     elif 40 < diff <= 70:
-        return 7
+        return 9
     elif 71 < diff <= 100:
-        return 10
+        return 13
     else:
         return 1.0
 
