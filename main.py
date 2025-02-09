@@ -169,13 +169,11 @@ def calculate_final_score(row):
 def calculate_effective_points(keyword_list):
     """Calculate effective points per keyword and new keyword combinations based on total point."""
     def keyword_score(keyword, base_points):
-        words = keyword.split()
-        if len(words) == 1:
-            return base_points  # Exact match (single word)
-        return sum(base_points / (i + 1) for i in range(len(words) - 1))
-    
+        return base_points  # Gelen puanı olduğu gibi döndür
+        
     return [(kw, points, keyword_score(kw, points), keyword_score(kw, points), keyword_score(kw, points) * (1/1))
             for kw, points in keyword_list]
+
 
 def sort_keywords_by_total_points(keyword_list):
     """Sort keywords by total calculated points instead of per character efficiency."""
