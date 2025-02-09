@@ -137,11 +137,11 @@ def normalize_competitor(value):
     elif 11 <= value <= 20:
         return 4.5
     elif 21 <= value <= 30:
-        return 4.2
-    elif 31 <= value <= 60:
         return 4
-    elif 61 <= value <= 100:
+    elif 31 <= value <= 60:
         return 3
+    elif 61 <= value <= 100:
+        return 2
     else:
         return 0
 
