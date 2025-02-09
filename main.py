@@ -77,9 +77,9 @@ def update_difficulty(diff):
     except:
         return None
     if 0 <= diff <= 5:
-        return 0.5
+        return 0.7
     elif 6 <= diff <= 10:
-        return 0.8
+        return 0.9
     elif 11 <= diff <= 20:
         return 1
     elif 21 <= diff <= 30:
@@ -105,7 +105,7 @@ def update_rank(rank):
     elif 11 <= rank <= 30:
         return 4
     elif 31 <= rank <= 50:
-        return 4
+        return 3
     elif 51 <= rank <= 249:
         return 2
     else:
@@ -120,9 +120,9 @@ def update_result(res):
     if 1 <= res <= 20:
         return 3
     elif 21 <= res <= 50:
+        return 2.5
+    elif 51 <= res <= 100:
         return 2
-    elif 51 <= res <= 200:
-        return 1.5
     else:
         return 1
 
@@ -419,7 +419,7 @@ if table_input:
             df_table[f"Normalized {col}"] = df_table[col].apply(normalize_competitor)
         # Create "All Competitor Score" as the sum of all normalized competitors divided by 5
         df_table["All Competitor Score"] = df_table[["Normalized Competitor1", "Normalized Competitor2", "Normalized Competitor3", 
-                                 "Normalized Competitor4", "Normalized Competitor5"]].sum(axis=1) / 8
+                                 "Normalized Competitor4", "Normalized Competitor5"]].sum(axis=1) / 10
         df_table["Final Score"] = df_table.apply(calculate_final_score, axis=1)
         df_table = df_table.drop(columns=["Chance", "KEI"])
         df_table = df_table.sort_values(by="Final Score", ascending=False)
