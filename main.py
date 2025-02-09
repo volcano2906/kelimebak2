@@ -271,9 +271,7 @@ def fill_field_with_word_breaking(field_limit, df_table, used_words, used_keywor
     keywords = list(zip(df_table.iloc[:, 0], df_table.iloc[:, -1]))  # First & Last column
 
     for kw_tuple in keywords:
-        print(kw_tuple[0])
         kw = remove_stop_words(kw_tuple[0], stop_words)
-        print(kw)
         f3_points = float(kw_tuple[1])  # Extract Final Score
         kw_words = set(kw.split())
 
@@ -358,10 +356,10 @@ def optimize_keyword_placement(keyword_list):
     
     # Construct best phrase dynamically for Field 1 (multiplier 1)
     field1, points1, used_kw1, length1 = construct_best_phrase(29, sorted_keywords, 1, used_words, used_keywords)
-    print(field1)
+    st.write(field1)
     # Construct best phrase dynamically for Field 2 (multiplier 1)
     field2, points2, used_kw2, length2 = construct_best_phrase(29, sorted_keywords, 1, used_words, used_keywords)
-    print(field2)
+    st.write(field2)
     # Fill Field 3 (multiplier 1/3, allows word breaking) with a 100-character limit
     field3, points3, used_kw3, lenth = fill_field_with_word_breaking(
     130,  # Field limit (100 characters for Field 3)
