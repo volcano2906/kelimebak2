@@ -116,7 +116,7 @@ def update_result(res):
     try:
         res = float(res)
     except:
-        return 1
+        return 250
     if 1 <= res <= 20:
         return 3
     elif 21 <= res <= 50:
@@ -350,6 +350,7 @@ def optimize_keyword_placement(keyword_list):
     expanded_keywords = expand_keywords(keyword_list, max_length=29)
     sorted_keywords = calculate_effective_points(expanded_keywords)
     sorted_keywords=sort_keywords_by_total_points(sorted_keywords)
+    st.write(sorted_keywords[:5])
     
     used_words = set()
     used_keywords = set()
