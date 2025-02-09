@@ -66,7 +66,7 @@ def update_rank(rank):
     elif 11 <= rank <= 30:
         return 4
     elif 31 <= rank <= 50:
-        return 4
+        return 3
     elif 51 <= rank <= 249:
         return 2
     else:
