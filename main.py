@@ -3,6 +3,8 @@ import pandas as pd
 import io
 import itertools
 from collections import defaultdict
+import re
+
 
 ##############################
 # Part 1: Data Processing Code
