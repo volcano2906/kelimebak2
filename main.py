@@ -350,7 +350,6 @@ def optimize_keyword_placement(keyword_list):
     expanded_keywords = expand_keywords(keyword_list, max_length=29)
     sorted_keywords = calculate_effective_points(expanded_keywords)
     sorted_keywords=sort_keywords_by_total_points(sorted_keywords)
-    st.write(sorted_keywords[:5])
     
     used_words = set()
     used_keywords = set()
