@@ -411,9 +411,9 @@ if table_input:
         df_table["Normalized Difficulty"] = df_table["Difficulty"].apply(update_difficulty)
         df_table["Normalized Rank"] = df_table["Rank"].apply(update_rank)
         df_table["Calculated Result"] = df_table["Results"].apply(update_result)
-        st.write(len(df_table.tolist())
+        st.write(len(df_table["Keyword"]))
         df_table = df_table[~df_table["Keyword"].str.contains(r'\b(free|app)\b', case=False, na=False)]
-        st.write(len(df_table.tolist())
+        st.write(len(df_table["Keyword"]))
         # Apply normalization to competitor columns and store in new columns
         for col in ["Competitor1", "Competitor2", "Competitor3", "Competitor4", "Competitor5"]:
             df_table[f"Normalized {col}"] = df_table[col].apply(normalize_competitor)
