@@ -396,6 +396,12 @@ if table_input:
     try:
         table_io = io.StringIO(table_input)
         df_table = pd.read_csv(table_io, sep="\t")
+
+
+        #5 volume kaldırma
+        drop_low_volume = st.checkbox("Exclude Keywords with Volume 5")
+        if drop_low_volume:
+            df_table = df_table[df_table["Volume"] != 5]
     except Exception as e:
         st.error(f"Error reading table data: {e}")
         st.stop()
